@@ -1,38 +1,60 @@
 {% set name = "aiohttp-cors" %}
-{% set version = "0.7.0" %}
+{% set version = "0.8.1" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/aiohttp_cors/{{ name }}-{{ version }}.tar.gz
-  sha256: 4d39c6d7100fd9764ed1caf8cebf0eb01bf5e3f24e2e073fda6234bc48b19f5d
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name|replace('-', '_') }}/{{ name|replace('-', '_') }}-{{ version }}.tar.gz
+  sha256: ccacf9cb84b64939ea15f859a146af1f662a6b1d68175754a07315e305fb1403
 
 build:
   number: 0
-  script: "{{ PYTHON }} -m pip install . -vv"
-  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [py<39]
 
 requirements:
   host:
-    - python >=3.6
+    - python
     - pip
+    - setuptools >=20.8.1
+    - wheel
   run:
-    - python >=3.6
-    - aiohttp >=1.1
+    - python
+    - aiohttp >=3.9
+
+# Open browser app during test
+{% set ignore_tests = "--ignore=tests/integration/test_real_browser.py" %}
+# E fixture 'aiohttp_client' not found -> missing pytest-aiohttp module
+{% set ignore_tests = ignore_tests + " --ignore=tests/integration/test_main.py" %}
 
 test:
+  source_files:
+    - tests
   imports:
     - aiohttp_cors
+    - aiohttp_cors.preflight_handler
+    - aiohttp_cors.resource_options
+    - aiohttp_cors.urldispatcher_router_adapter
+  requires:
+    - pip
+    - pytest
+    - pytest-tornasync
+  commands:
+    - pip check
+    - python -c "from importlib.metadata import version; assert(version('{{ name }}')=='{{ version }}')"
+    - pytest {{ ignore_tests }} -v tests
 
 about:
   home: https://github.com/aio-libs/aiohttp-cors
   license: Apache-2.0
   license_family: Apache
   license_file: LICENSE
-  summary: 'CORS support for aiohttp'
-  doc_url: https://github.com/aio-libs/aiohttp-cors
+  summary: CORS support for aiohttp
+  description: aiohttp_cors library implements Cross Origin Resource Sharing (CORS) support
+    for aiohttp asyncio-powered asynchronous HTTP server.
+  doc_url: https://github.com/aio-libs/aiohttp-cors/blob/master/README.rst
   dev_url: https://github.com/aio-libs/aiohttp-cors
 
 extra:
